@@ -12,16 +12,25 @@ html(lang="en")
         main
             div#welcome
                 form
-                    input(placeholder="room name", required, type= "text")
                     button Enter Room
+            div#firstoption
+                form
+                    input(placeholder="nickname", required, type= "text")
+                    button Save
+            div#secondoption             
+                form
+                    input(placeholder="room name", required, type= "text")
+                    button Save
                 h4 Open Rooms:
                 ul
             div#room
-                h3      
-                ul
-                form#name
-                    input(placeholder="nickname", required, type= "text")
-                    button Save 
+                h3
+                h1 Screen Sharing and Capture
+                canvas#screenCanvas(width="800" height="600")
+                button#startButton Start Screen Sharing
+                button#captureButton Capture Screen
+                div#chat-container(style="width: 400px; height: 400px; border: 1px solid #ccc; border-radius: 5px; overflow-y: auto; background-color: #fff; padding: 10px; margin-left: 500px;")
+                    ul
                 form#msg
                     input(placeholder="message", required, type= "text")
                     button Send

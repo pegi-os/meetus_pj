@@ -1,7 +1,7 @@
 //backend
 import express from "express";
 import http from "http";
-import {Server} from "socket.io";
+import { Server } from "socket.io";
 import { instrument } from "@socket.io/admin-ui";
 const app = express();
 
@@ -10,6 +10,9 @@ app.set("views", __dirname + "/views");
 app.use("/public", express.static(__dirname + "/public"));
 app.get("/", (_, res) => res.render("home"));
 app.get("/*", (_, res) => res.redirect("/"));
+
+
+let screenData = null;
 
 const handleListen = () => console.log(`Listening on http://localhost:1111`)
 
@@ -36,14 +39,14 @@ function publicRoom() {
     return publicRoom;
 }
 
-function countRoom(roomname){
+function countRoom(roomname) {
     return io.sockets.adapter.rooms.get(roomname)?.size
 }
 
 io.on("connection", (socket) => {
     socket["nickname"] = "any";
-    socket.onAny((event) => {
-        console.log(`Socket Event: ${event}`);
+    socket.onAny(() => {
+        console.log(` ${screenData}`);
     });
     socket.on("enter_room", (roomname, done) => {
         socket.join(roomname);
@@ -68,24 +71,19 @@ io.on("connection", (socket) => {
         socket["nickname"] = nickname;
     });
 
+    if (screenData) {
+        console.log("hi");
+        // If there's already screen data available, send it to the newly connected client
+        socket.emit('screenData', screenData);
+    }
+
+    socket.on('screenData', (data) => {
+        // Save the received screen data and broadcast it to all connected clients
+        screenData = data;
+        io.emit('screenData', data);
+    });
+
 });
 
-
-// const sockets = [];
-
-// wss.on("connection", (socket) => {
-//     sockets.push(socket);
-//     socket["nickname"] = "anyone"; //nickname이 없는 사람이 적을 때
-//     socket.on("message", (msg) => {     
-//         const message = JSON.parse(msg);
-//         switch(message.type){
-//             case "new_message":
-//                 sockets.forEach((aSocket) => aSocket.send(`${socket.nickname} : ${message.payload}`));
-//             case "nickname":
-//                 socket["nickname"] = message.payload;
-//         }
-
-//     });
-// });
 
 server.listen(1111, handleListen);
