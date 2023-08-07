@@ -31,55 +31,28 @@ async function getMedia() {
     });
 
     myVideo.srcObject = myStream;
-    await getCamera();
-  } catch (e) { 
-    console.log(e);
-  }
-}
-
-async function getCamera() {
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const cameras = devices.filter((device) => device.kind === "videoinput");
-
-    cameras.forEach((camera) => {
-      const option = document.createElement("option");
-      option.value = camera.deviceId;
-      option.innerText = camera.label;
-      cameraSelect.appendChild(option);
-    });
   } catch (e) {
     console.log(e);
   }
 }
 
-function handleAudioClick() {
-  myStream
-    .getAudioTracks()
-    .forEach((track) => (track.enabled = !track.enabled));
 
-  if (!muted) {
-    audioBtn.innerText = "Unmute";
-  } else {
-    audioBtn.innerText = "Mute";
-  }
-  muted = !muted;
-}
+async function handleCameraClick() {
 
-function handleCameraClick() {
-  myStream
-    .getVideoTracks()
-    .forEach((track) => (track.enabled = !track.enabled));
   if (!cameraOff) {
-    cameraBtn.innerText = "Turn Camera On";
+    myStream.getTracks().forEach((track) => track.stop());
+    cameraOff = true;
+    handleCameraChange(); // 화면 공유가 중지될 때 화면 변경을 상대방에게 전달
   } else {
-    cameraBtn.innerText = "Turn Camera Off";
+    await getMedia(); // 화면 공유를 시작
+    cameraOff = false;
+    handleCameraChange(); // 화면 공유가 시작될 때 화면 변경을 상대방에게 전달
   }
-  cameraOff = !cameraOff;
 }
+
 
 async function handleCameraChange() {
-  await getMedia();
+  if (!myPeerConnection) return; // myPeerConnection이 존재하지 않는 경우 종료
 
   if (myPeerConnection) {
     const newVideoTrack = myStream.getVideoTracks()[0];
@@ -90,9 +63,9 @@ async function handleCameraChange() {
   }
 }
 
-audioBtn.addEventListener("click", handleAudioClick);
+
 cameraBtn.addEventListener("click", handleCameraClick);
-cameraSelect.addEventListener("change", handleCameraChange);
+
 
 // --------------- wait room form (choose and enter a room) -----------------
 
@@ -108,7 +81,6 @@ async function handleRoomSubmit(e) {
 
   // 카메라, 마이크 장치 연결 설정
   await initCall();
-
   // 닉네임 설정
   const nicknameInput = waitRoom.querySelector("#nickname");
   socket.emit("set_nickname", nicknameInput.value);
@@ -130,14 +102,15 @@ async function initCall() {
   makeConnection();
 }
 
+
 waitRoomForm.addEventListener("submit", handleRoomSubmit);
 
 // --------- Socket Code ----------
 
 socket.on("welcome", async () => {
-  console.log("hi");
   myDataChannel = myPeerConnection.createDataChannel("chat");
   myDataChannel.addEventListener("message", addMessage);
+
   const offer = await myPeerConnection.createOffer();
   myPeerConnection.setLocalDescription(offer);
   socket.emit("send_offer", offer, roomName);
@@ -179,12 +152,11 @@ function makeConnection() {
   myPeerConnection = new RTCPeerConnection();
   myPeerConnection.addEventListener("icecandidate", handleIce);
 
-  // "addstream" event
   myPeerConnection.addEventListener("addstream", handleAddStream);
-
   myStream
     .getTracks()
     .forEach((track) => myPeerConnection.addTrack(track, myStream));
+
 }
 
 // --------- Data Channel Code ---------
@@ -198,7 +170,9 @@ function addMessage(e) {
 function handleChatSubmit(e) {
   e.preventDefault();
   const input = chatForm.querySelector("input");
-  myDataChannel.send(`${nickname}: ${input.value}`);
+  if (myDataChannel != null) {
+    myDataChannel.send(`${nickname}: ${input.value}`);
+  }
   addMessage({ data: `You: ${input.value}` });
   input.value = "";
 }
