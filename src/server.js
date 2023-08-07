@@ -1,8 +1,7 @@
-//backend
-import express from "express";
 import http from "http";
-import { Server } from "socket.io";
-import { instrument } from "@socket.io/admin-ui";
+import SocketIO from "socket.io";
+import express from "express";
+
 const app = express();
 
 app.set("view engine", "pug");
@@ -11,79 +10,35 @@ app.use("/public", express.static(__dirname + "/public"));
 app.get("/", (_, res) => res.render("home"));
 app.get("/*", (_, res) => res.redirect("/"));
 
+const httpServer = http.createServer(app);
+const wsServer = SocketIO(httpServer);
 
-let screenData = null;
+wsServer.on("connection", (socket) => {
+  // console.log(socket);
+  socket["nickname"] = "Anonymous";
 
-const handleListen = () => console.log(`Listening on http://localhost:1111`)
+  socket.on("enter_room", (roomName, done) => {
+    socket.join(roomName);
+    done();
+    socket.to(roomName).emit("welcome");
+  });
 
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: ["https://admin.socket.io"],
-        credentials: true,
-    },
-});
-instrument(io, {
-    auth: false
-});
+  socket.on("set_nickname", (nickname) => {
+    socket["nickname"] = nickname;
+  });
 
-function publicRoom() {
-    const sids = io.sockets.adapter.sids;
-    const rooms = io.sockets.adapter.rooms;
-    const publicRoom = [];
-    rooms.forEach((_, key) => {
-        if (sids.get(key) === undefined) {
-            publicRoom.push(key);
-        }
-    });
-    return publicRoom;
-}
+  socket.on("send_offer", (offer, roomName) => {
+    socket.to(roomName).emit("receive_offer", offer);
+  });
 
-function countRoom(roomname) {
-    return io.sockets.adapter.rooms.get(roomname)?.size
-}
+  socket.on("send_answer", (answer, roomName) => {
+    socket.to(roomName).emit("receive_answer", answer);
+  });
 
-io.on("connection", (socket) => {
-    socket["nickname"] = "any";
-    socket.onAny(() => {
-        console.log(` ${screenData}`);
-    });
-    socket.on("enter_room", (roomname, done) => {
-        socket.join(roomname);
-        done();
-        socket.to(roomname).emit("welcome", socket.nickname, countRoom(roomname));
-        io.sockets.emit("room_change", publicRoom());
-    });
-    socket.on("disconnecting", () => {
-        socket.rooms.forEach((room) => socket.to(room).emit("bye", socket.nickname, countRoom(room) - 1));
-    });
-
-    socket.on("disconnect", () => {
-        io.sockets.emit("room_change", publicRoom());
-    });
-
-    socket.on("new_message", (message, roomname, done) => {
-        done();
-        socket.to(roomname).emit("new_message", `${socket.nickname}: ${message}`);
-    });
-
-    socket.on("nickname", (nickname) => {
-        socket["nickname"] = nickname;
-    });
-
-    if (screenData) {
-        console.log("hi");
-        // If there's already screen data available, send it to the newly connected client
-        socket.emit('screenData', screenData);
-    }
-
-    socket.on('screenData', (data) => {
-        // Save the received screen data and broadcast it to all connected clients
-        screenData = data;
-        io.emit('screenData', data);
-    });
-
+  socket.on("send_ice", (ice, roomName) => {
+    socket.to(roomName).emit("receive_ice", ice);
+  });
 });
 
-
-server.listen(1111, handleListen);
+const handleListen = () => console.log(`Listening on http://localhost:3000`);
+httpServer.listen(3000, handleListen);

@@ -2,37 +2,40 @@ doctype html
 html(lang="en")
     head
         meta(charset="UTF-8")
-        meta(http-equiv = "X-UA-Compatible", content = "IE=edge")
+        meta(http-equiv="X-UA-Compatible", content="IE=edge")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
-        title Meetus
+        title Boom
         link(rel="stylesheet", href="https://unpkg.com/mvp.css")
+        link(rel='stylesheet', href="/public/home.css")
     body
         header
-            h1 Room
+            h1 Boom
         main
-            div#welcome
+            div#waitRoom
                 form
+                    p 
+                        | Start video call & messaging
+                        br
+                        | by entering a chat room
+                    input(id="nickname", placeholder="nickname", required, type="text")
+                    input(id="roomName", placeholder="room name", required, type="text")
                     button Enter Room
-            div#firstoption
-                form
-                    input(placeholder="nickname", required, type= "text")
-                    button Save
-            div#secondoption             
-                form
-                    input(placeholder="room name", required, type= "text")
-                    button Save
-                h4 Open Rooms:
-                ul
-            div#room
-                h3
-                h1 Screen Sharing and Capture
-                canvas#screenCanvas(width="800" height="600")
-                button#startButton Start Screen Sharing
-                button#captureButton Capture Screen
-                div#chat-container(style="width: 400px; height: 400px; border: 1px solid #ccc; border-radius: 5px; overflow-y: auto; background-color: #fff; padding: 10px; margin-left: 500px;")
-                    ul
-                form#msg
-                    input(placeholder="message", required, type= "text")
-                    button Send
-        script(src="/socket.io/socket.io.js")
-        script(src="/public/js/app.js")
+            div#callRoom
+                div#videoCall
+                    div#myStream
+                        h2 You:
+                        video#myVideo(autoplay, playinline, width="400", height="400")
+                        button#audio Mute
+                        button#camera Turn Camera Off
+                        select#cameraSelect
+                    div#peerStream
+                        h2 Opponent:
+                        video#peerVideo(autoplay, playinline, width="400", height="400")
+                div#chatContainer
+                    h2 Chat 💬
+                    ul#messages 
+                    form#chat
+                        input(type="text", placeholder="Type a message")
+                        button Send
+        script(src="/socket.io/socket.io.js") 
+        script(src="/public/js/app.js") 
