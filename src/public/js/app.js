@@ -15,7 +15,7 @@ const callRoom = document.getElementById("callRoom");
 // callRoom.hidden = true;
 callRoom.style.display = "none";
 
-let myStream;
+let myStream = null;
 let muted = false;
 let cameraOff = false;
 let roomName;
@@ -31,14 +31,27 @@ async function getMedia() {
     });
 
     myVideo.srcObject = myStream;
+    myPeerConnection.addTrack(myStream.getVideoTracks()[0], myStream);
+
+    const offer = await myPeerConnection.createOffer();
+    await myPeerConnection.setLocalDescription(offer);
+    // Offer를 상대방에게 전송
+    socket.emit("send_offer", offer, roomName)
   } catch (e) {
     console.log(e);
   }
 }
 
 
-async function handleCameraClick() {
 
+async function handleCameraClick() {
+  if (!myStream) {
+    await getMedia();
+    // myPeerConnection = null; // 기존 커넥션 종료
+    // makeConnection(); // 새로운 커넥션 설정
+
+    return;
+  }
   if (!cameraOff) {
     myStream.getTracks().forEach((track) => track.stop());
     cameraOff = true;
@@ -98,7 +111,6 @@ async function initCall() {
   // // waitRoom.hidden = true;
   // callRoom.hidden = false;
   // callRoom.style.display = "flex";
-  await getMedia();
   makeConnection();
 }
 
@@ -148,14 +160,26 @@ function handleAddStream(data) {
   peerVideo.srcObject = data.stream;
 }
 
+
+function handleAddTrack(event) {
+  if (event.track.kind === "video") {
+    peerStream = new MediaStream([event.track]);
+    peerVideo.srcObject = peerStream;
+  }
+}
+
+
+
+
 function makeConnection() {
   myPeerConnection = new RTCPeerConnection();
   myPeerConnection.addEventListener("icecandidate", handleIce);
 
   myPeerConnection.addEventListener("addstream", handleAddStream);
-  myStream
-    .getTracks()
-    .forEach((track) => myPeerConnection.addTrack(track, myStream));
+  if (myStream)
+    myStream
+      .getTracks()
+      .forEach((track) => myPeerConnection.addTrack(track, myStream));
 
 }
 
